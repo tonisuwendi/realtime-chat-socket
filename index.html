@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Sokect IO NodeJs</title>
+	<style type="text/css">
+		form{
+			position: absolute;
+			bottom: 0;
+			width: 100%;
+			background-color: grey;
+			padding: 20px;
+			box-sizing: border-box;
+		}
+		li{
+			padding: 5px;
+		}
+		#messages li:nth-child(even){
+			background-color: #333;
+			color: white;
+		}
+		input#name_user{
+			float: left;
+			width: 20%;
+			height: 30px;
+			border: none;
+		}
+		input#text_box{
+			float: left;
+			width: 40%;
+			height: 30px;
+			border: none;
+			margin-left: 10px;
+		}
+		button{
+			float: left;
+			width: 20%;
+			height: 33px;
+		}
+
+		.hidden{
+			display: none;
+		}
+
+		#right{
+			float: left;
+			width: 25%;
+		}
+
+		#left{
+			float: left;
+			width: 70%;
+		}
+	</style>
+</head>
+<body>
+
+	<div id="homepage">
+		
+		<h1>Selamat Datang di chatroom</h1>
+		<input type="text" id="name_user" placeholder="nama kamu..">
+		<button id="submit_name">Masuk!</button>
+
+	</div>
+
+	<div id="chatroom" class="hidden">
+		<div id="left">
+			<ul id="messages"></ul>
+
+			<form>
+				<input type="text" id="text_box" placeholder="chat kamu">
+				<button>kirim</button>
+			</form>
+		</div>
+		<div id="right">
+			<h2>User online</h2>
+			<ul id="user_list"></ul>
+		</div>
+
+	</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+<script>
+	var socket = io();
+	var username = "";
+	$("form").submit(function(){
+		username = $('#name_user').val();
+		socket.emit('newMessage', username + ' ' + $('#text_box').val());
+		$("#text_box").val('');
+		isTyping = false;
+		return false;
+	})
+
+	socket.on('addOnlineUsers', function(usernames){
+		$("#user_list").empty();
+		for(var i=0;i<usernames.length;i++){
+			$('#user_list').append($('<li id="user_' + usernames[i] + '">').text(usernames[i]));
+		}
+	})
+
+	//untuk menampilkannya di front end
+	socket.on('newMessage', function(msg){
+		$('#messages').append($('<li>').text(msg + ' || pada: ' + Date()));
+		$(".temporary").remove();
+	})
+
+	$("#submit_name").click(function(){
+		//validasi
+		if($('#name_user') != ""){
+			username = $("#name_user").val();
+			socket.emit('registerUser', username);
+		}
+	})
+
+	socket.on('registerRespond', function(status){
+		if(status == false){
+			alert('user sudah ada, cari nama lain');
+		}else{
+			$("#chatroom").removeClass('hidden');
+			$("#homepage").addClass('hidden');
+		}
+	})
+
+	var isTyping = false;
+	$("#text_box").keyup(function(){
+		if(isTyping == false){
+			socket.emit('newTyping', username + ' sedang mengetik..');
+		}
+		isTyping = true;
+	})
+
+	socket.on('newTyping', function(msg){
+		$('#messages').append($('<li class="temporary">').text(msg));
+	})
+
+</script>
+</body>
+</html>
